@@ -8,6 +8,9 @@ ext=""
 ext_option=1
 ext_list=()
 
+url_list=()
+url_option="1"
+
 add_ext(){
 
     local -n new_list=$1
@@ -41,12 +44,80 @@ ext_selected() {
     fi
 }
 
+add_url(){
+
+    local -n new_list=$1
+    local new_value=$2
+
+    for i in ${!new_list[@]}; do
+
+        if [ "$new_value" == "${new_list[$i]}" ]
+        then
+            echo "Ya fue añadida esa url"  
+            return 1
+        fi
+    done
+
+    url_list+=("$new_value") 
+
+}
+
+#Muestra las URLs seleccionadas
+url_selected() {
+    local -n url_selected=$1
+
+    if (( ${#url_selected[@]} > 0 ));
+    then
+
+        echo "|-URLs AÑADIDAS-|"
+        echo "${#url_selected[@]}"
+    fi
+}
+
+ext_search_void() {
+
+    ext_search=$1 
+    local -n list=$2
+    if (( ${#list[@]} > 1 ));
+    then
+        ext_search="${list[0]}"
+        IFS=,
+        ext_search="${list[*]}"
+        unset IFS
+
+        #Verificacion de que no exista ningun espacio entre los elementos.
+        ext_search="${ext_search// /}"
+    else
+        ext_search="${list[0]}"
+    fi
+}
+
+url_search_void() {
+
+    url_search=$1
+    local -n list=$2
+
+    if (( ${#list[@]} > 1 ));
+    then
+        url_search="${list[0]}"
+        IFS=" "
+        url_search="${list[*]}"
+        unset IFS
+
+        url_search="$url_search"
+
+    else
+        url_search="${list[0]}"
+    fi
+}
+
 while (( ext_option != 0 ))
 do
     echo "Que extensiones deseas descargar?"
     echo "(1) .mp4"
     echo "(2) .jpg"
-    echo "(3) .svg"
+    echo "(3) .png"
+    echo "(4) .svg"
     echo ""
     echo "(0) Continuar..."
 
@@ -66,6 +137,11 @@ do
 
     if (( ext_option == 3 ))
     then
+        ext=".png"
+    fi
+
+    if (( ext_option == 4 ))
+    then
         ext=".svg"
     fi
 
@@ -74,7 +150,7 @@ do
         break
     fi
 
-    if (( ext_option < 0 || ext_option > 3 ))
+    if (( ext_option < 0 || ext_option > 4 ))
     then
         echo "Opcion invalida"
         return 0
@@ -84,23 +160,28 @@ do
 
 done
 
-read -p "Coloca el url: " url
+while true
+do
+    echo "Añade las URLs"
+    echo "(0) Continuar..."
 
-if (( ${#ext_list[@]} > 1 ));
-then
-    ext_search="${ext_list[0]}"
-    IFS=,
-    ext_search="${ext_list[*]}"
-    unset IFS
+    url_selected url_list
 
-    #Verificacion de que no exista ningun espacio entre los elementos.
-    ext_search="${ext_search// /}"
+    read -p "Coloca el url: " url_option
 
-    echo "$ext_search"
+    url_selected url_list
 
-    wget -r -np -nc -nd --show-progress -A $ext_search $url 2>/dev/null
+    if (( url_option == "0" ))
+    then
+        break
+    fi
 
-else
-    wget -r -np -nc -nd --show-progress -A ${ext_list[0]} $url 2>/dev/null
+    add_url url_list "$url_option"
 
-fi
+done
+
+ext_search_void ext_search ext_list
+url_search_void url_search url_list
+
+wget -r -np -nc -nd --show-progress -A $ext_search $url_search 2>/dev/null
+
